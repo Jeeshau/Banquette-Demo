@@ -2,108 +2,21 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Banquette – Slider (3 Models)</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Banquette Demo</title>
   <script type="module" src="https://unpkg.com/@google/model-viewer@^4/dist/model-viewer.min.js"></script>
   <style>
-    html,body{height:100%;margin:0;font:14px/1.4 system-ui}
-    #wrap{max-width:1024px;margin:0 auto;padding:16px}
-    model-viewer{width:100%;height:70vh;background:#f5f5f5;border-radius:12px}
-    .bar{margin:14px 0}
-    .bar label{display:block;margin-bottom:6px}
-    .range{width:100%}
-    .row{display:flex;justify-content:space-between;font-size:12px;color:#666;margin-top:6px}
-    .status{display:flex;gap:8px;align-items:center;font-size:12px;color:#333;margin-top:8px}
-    progress{width:220px;height:10px}
+    html,body { height:100%; margin:0; }
+    model-viewer { width:100%; height:100%; background:#f5f5f5; }
   </style>
 </head>
 <body>
-<div id="wrap">
-  <model-viewer id="viewer"
-    src="./model001.glb"
-    camera-controls shadow-intensity="1" exposure="1"
-    environment-image="neutral" autoplay>
+  <model-viewer src="./model001.glb"
+    camera-controls
+    shadow-intensity="1"
+    exposure="1"
+    autoplay
+    environment-image="neutral">
   </model-viewer>
-
-  <div class="bar">
-    <label for="slider">调整形态（拖动切换模型）</label>
-    <!-- 1~3 对应 model001 / model002 / model003 -->
-    <input id="slider" class="range" type="range" min="1" max="3" step="1" value="1" list="ticks">
-    <datalist id="ticks">
-      <option value="1" label="001"></option>
-      <option value="2" label="002"></option>
-      <option value="3" label="003"></option>
-    </datalist>
-    <div class="row">
-      <span>model001</span><span id="cur">model001</span><span>model003</span>
-    </div>
-
-    <div class="status">
-      <span>加载进度</span>
-      <progress id="bar" max="1" value="0"></progress>
-      <span id="pct">0%</span>
-      <a id="open" href="./model001.glb" target="_blank" style="margin-left:auto;font-size:12px;">直接打开当前模型</a>
-    </div>
-  </div>
-</div>
-
-<script>
-  // 这里列出你的阶段模型（文件名大小写要和磁盘一致）
-  const MODELS = ["model001.glb","model002.glb","model003.glb"];
-
-  const viewer = document.getElementById('viewer');
-  const slider = document.getElementById('slider');
-  const cur    = document.getElementById('cur');
-  const bar    = document.getElementById('bar');
-  const pct    = document.getElementById('pct');
-  const openA  = document.getElementById('open');
-
-  // 预取，提升切换顺滑度（忽略失败也没关系）
-  MODELS.forEach(src => fetch(src).catch(()=>{}));
-
-  function setModelByIndex(idx){
-    const name = MODELS[idx];
-    cur.textContent = name.replace('.glb','');
-    openA.href = './' + name;
-    // 加时间戳避免缓存导致“卡住”
-    viewer.src = name + '?v=' + Date.now();
-  }
-
-  // 初始化
-  slider.max = String(MODELS.length);
-  setModelByIndex(0);
-
-  // 去抖：快速拖动时延迟一点点再切换
-  let t = null;
-  slider.addEventListener('input', () => {
-    const idx = Math.max(0, Math.min(MODELS.length - 1, Number(slider.value) - 1));
-    cur.textContent = MODELS[idx].replace('.glb','');
-    openA.href = './' + MODELS[idx];
-    clearTimeout(t);
-    t = setTimeout(() => setModelByIndex(idx), 80);
-  });
-
-  // 进度与错误可视化
-  viewer.addEventListener('progress', (e) => {
-    const p = e.detail?.totalProgress ?? 0;
-    bar.value = p;
-    pct.textContent = Math.round(p * 100) + '%';
-  });
-  viewer.addEventListener('load', () => {
-    bar.value = 1; pct.textContent = '100%';
-    console.log('✅ model loaded:', viewer.src);
-  });
-  viewer.addEventListener('error', (e) => {
-    console.error('❌ model-viewer error:', e.detail);
-    pct.textContent = '错误';
-  });
-
-  // 键盘细调
-  slider.addEventListener('keydown', e => {
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') slider.stepDown();
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp')  slider.stepUp();
-    slider.dispatchEvent(new Event('input'));
-  });
-</script>
 </body>
 </html>
+
