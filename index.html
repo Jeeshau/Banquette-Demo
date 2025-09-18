@@ -1,109 +1,274 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>Banquette Demo</title>
+  <title>Banquette Demo + Onboarding Animations</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
-  <!-- 引入 model-viewer -->
+  <!-- model-viewer -->
   <script type="module" src="https://unpkg.com/@google/model-viewer@^4/dist/model-viewer.min.js"></script>
-
   <style>
-    html, body { height:100%; margin:0; font-family:system-ui, sans-serif; }
-    #wrap { max-width:1024px; margin:0 auto; padding:16px; }
-    model-viewer { width:100%; height:70vh; background:#f5f5f5; border-radius:12px; }
-    .bar { margin:14px 0; }
-    .bar label { display:block; margin-bottom:6px; }
-    .range { width:100%; }
-    .row { display:flex; justify-content:space-between; font-size:12px; color:#666; margin-top:6px; }
-    .status { display:flex; gap:8px; align-items:center; font-size:12px; color:#333; margin-top:8px; }
-    progress { width:200px; height:10px; }
+    :root{
+      --bg:#0f1115; --fg:#f5f7fb; --muted:#aab2c0; --brand:#7aa2ff; --card:#171a21;
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--fg);background:var(--bg)}
+    a{color:var(--brand);text-decoration:none}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+
+    /* ---------- Onboarding Overlay ---------- */
+    .overlay{
+      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+      background: radial-gradient(1200px 600px at 70% -20%, rgba(122,162,255,0.15), transparent 55%),
+                  radial-gradient(900px 500px at 20% 120%, rgba(122,162,255,0.12), transparent 60%), #0b0e13;
+      z-index:50;
+    }
+    .panel{
+      width:min(720px,92%); background:linear-gradient(180deg,#151a22,#12161d);
+      border:1px solid #232a36; border-radius:24px; padding:28px; box-shadow:0 30px 80px rgba(0,0,0,0.45);
+      text-align:center;
+      animation:panelIn .6s ease both;
+    }
+    @keyframes panelIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+
+    .hero{
+      height:140px; border-radius:18px; background:linear-gradient(90deg,#1b2230,#171d29);
+      border:1px solid #293244; position:relative; overflow:hidden; margin-bottom:18px;
+    }
+    /* 轻量“骨架”动效 + 线条扫光 */
+    .hero::before{
+      content:""; position:absolute; inset:0;
+      background:
+        linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);
+      transform:translateX(-100%);
+      animation:shimmer 2.2s ease-in-out infinite;
+    }
+    @keyframes shimmer{to{transform:translateX(100%)}}
+
+    /* 小圆点节奏动画，暗示“参数在变化” */
+    .dots{display:flex; gap:8px; justify-content:center; margin:10px 0 4px}
+    .dot{width:8px; height:8px; border-radius:999px; background:#30405a; animation:bop 1.4s infinite}
+    .dot:nth-child(2){animation-delay:.15s}
+    .dot:nth-child(3){animation-delay:.3s}
+    @keyframes bop{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+
+    .title{font-size:20px; font-weight:700; margin:6px 0 2px}
+    .desc{color:var(--muted); margin:0 0 12px}
+    .start{
+      display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:999px;
+      background:linear-gradient(180deg,#7aa2ff,#5d8cff); color:#0e1320; font-weight:700; border:none; cursor:pointer;
+      box-shadow:0 10px 24px rgba(122,162,255,.28);
+      transition:transform .12s ease, box-shadow .12s ease;
+    }
+    .start:hover{transform:translateY(-1px); box-shadow:0 14px 28px rgba(122,162,255,.34)}
+    .subhint{color:#90a0b8; font-size:12px; margin-top:8px}
+
+    /* ---------- Step: shape selection ---------- */
+    .hidden{display:none}
+    .grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:14px}
+    .card{
+      background:linear-gradient(180deg,#141923,#10151c); border:1px solid #232a36; border-radius:var(--radius);
+      padding:16px; cursor:pointer; transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+    }
+    .card:hover{transform:translateY(-2px); border-color:#324059; box-shadow:0 10px 24px rgba(0,0,0,.28)}
+    .card h4{margin:4px 0 6px}
+    .chip{display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:#1b2331; color:#9fb4d6; border:1px solid #2b3649}
+    .muted{color:#90a0b8; font-size:12px}
+
+    /* ---------- Viewer section ---------- */
+    model-viewer{width:100%; height:68vh; background:#0e131a; border:1px solid #202634; border-radius:18px}
+    .bar{margin-top:14px; background:#121722; border:1px solid #202634; border-radius:14px; padding:12px}
+    .row{display:flex; gap:10px; align-items:center; justify-content:space-between}
+    .row-left{display:flex; gap:10px; align-items:center}
+    .range{width:100%}
+    .pill{font-size:12px; padding:4px 8px; border:1px solid #263043; border-radius:999px; color:#9fb4d6}
+    progress{width:180px; height:10px}
+
+    .fadeOut{animation:fadeOut .35s ease forwards}
+    @keyframes fadeOut{to{opacity:0; visibility:hidden}}
   </style>
 </head>
 <body>
-<div id="wrap">
-  <!-- 模型视图 -->
-  <model-viewer id="viewer"
-    src="./model001.glb"
-    camera-controls
-    shadow-intensity="1"
-    exposure="1"
-    autoplay
-    environment-image="neutral">
-  </model-viewer>
 
-  <!-- 滑条控制 -->
-  <div class="bar">
-    <label for="slider">调整形态（拖动切换模型）</label>
-    <input id="slider" class="range" type="range" min="1" max="3" step="1" value="1" list="ticks">
-    <datalist id="ticks">
-      <option value="1" label="001"></option>
-      <option value="2" label="002"></option>
-      <option value="3" label="003"></option>
-    </datalist>
-    <div class="row">
-      <span>model001</span><span id="cur">model001</span><span>model003</span>
-    </div>
-
-    <!-- 加载进度 -->
-    <div class="status">
-      <span>加载进度</span>
-      <progress id="bar" max="1" value="0"></progress>
-      <span id="pct">0%</span>
-      <a id="open" href="./model001.glb" target="_blank" style="margin-left:auto;font-size:12px;">直接打开当前模型</a>
-    </div>
+<!-- Onboarding Overlay -->
+<div id="overlay" class="overlay">
+  <div class="panel">
+    <div class="hero"></div>
+    <div class="dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+    <div class="title">从构想到落地，只需几步</div>
+    <p class="desc">选择 Banquette 形态 → 拖动参数 → 一键生成渲染与 Base Startup Kit</p>
+    <button id="btnStart" class="start">Start</button>
+    <div class="subhint">无需安装软件 · 纯网页交互</div>
   </div>
 </div>
 
+<div class="wrap">
+  <!-- Step 1: 形态选择 -->
+  <section id="stepShape">
+    <h3 style="margin:6px 0 2px">选择 Banquette 初始形态</h3>
+    <div class="muted">先确定大方向，我们会加载对应的初始模型</div>
+    <div class="grid" style="margin-bottom:6px">
+      <div class="card" data-shape="model001.glb">
+        <span class="chip">长条形</span>
+        <h4>Linear</h4>
+        <div class="muted">高效排布，适合狭长空间</div>
+      </div>
+      <div class="card" data-shape="model002.glb">
+        <span class="chip">曲形</span>
+        <h4>Curved</h4>
+        <div class="muted">柔和动线，视觉中心更强</div>
+      </div>
+      <div class="card" data-shape="model003.glb">
+        <span class="chip">环形</span>
+        <h4>Loop</h4>
+        <div class="muted">聚合社交，焦点式体验</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step 2: Viewer + 参数演示 -->
+  <section id="stepViewer" class="hidden">
+    <model-viewer id="viewer"
+      src="./model001.glb"
+      camera-controls
+      auto-rotate
+      shadow-intensity="1"
+      exposure="1"
+      environment-image="neutral"
+      autoplay>
+    </model-viewer>
+
+    <div class="bar">
+      <div class="row">
+        <div class="row-left">
+          <span class="pill">形态阶段</span>
+          <span id="curLabel" class="muted">model001</span>
+        </div>
+        <div class="row-left">
+          <span class="muted">加载进度</span>
+          <progress id="prog" max="1" value="0"></progress>
+          <span id="pct" class="muted">0%</span>
+        </div>
+      </div>
+      <input id="slider" class="range" type="range" min="1" max="3" step="1" value="1" list="ticks">
+      <datalist id="ticks">
+        <option value="1" label="001"></option>
+        <option value="2" label="002"></option>
+        <option value="3" label="003"></option>
+      </datalist>
+      <div class="row" style="margin-top:6px">
+        <small class="muted">提示：拖动滑条切换阶段，拖拽模型可旋转/缩放</small>
+        <a id="open" href="./model001.glb" target="_blank">直接打开当前模型</a>
+      </div>
+    </div>
+  </section>
+</div>
+
 <script>
-  // 模型列表（可扩展）
+  // --------- 共享状态 ---------
   const MODELS = ["model001.glb","model002.glb","model003.glb"];
+  const overlay = document.getElementById('overlay');
+  const btnStart = document.getElementById('btnStart');
+  const stepShape = document.getElementById('stepShape');
+  const stepViewer = document.getElementById('stepViewer');
+  const cards = Array.from(document.querySelectorAll('.card'));
 
   const viewer = document.getElementById('viewer');
   const slider = document.getElementById('slider');
-  const cur    = document.getElementById('cur');
-  const bar    = document.getElementById('bar');
-  const pct    = document.getElementById('pct');
-  const openA  = document.getElementById('open');
+  const curLabel = document.getElementById('curLabel');
+  const prog = document.getElementById('prog');
+  const pct = document.getElementById('pct');
+  const openA = document.getElementById('open');
 
-  // 预加载模型
+  // 预取，提升切换顺滑度（忽略失败也可）
   MODELS.forEach(src => fetch(src).catch(()=>{}));
 
-  function setModelByIndex(idx){
-    const name = MODELS[idx];
-    cur.textContent = name.replace('.glb','');
-    openA.href = './' + name;
-    viewer.src = name + '?v=' + Date.now(); // 防缓存
-  }
-
-  // 初始化
-  slider.max = String(MODELS.length);
-  setModelByIndex(0);
-
-  // 滑条事件
-  let t = null;
-  slider.addEventListener('input', () => {
-    const idx = Math.max(0, Math.min(MODELS.length - 1, Number(slider.value) - 1));
-    cur.textContent = MODELS[idx].replace('.glb','');
-    openA.href = './' + MODELS[idx];
-    clearTimeout(t);
-    t = setTimeout(() => setModelByIndex(idx), 80);
+  // --------- Onboarding → Shape step ----------
+  btnStart.addEventListener('click', () => {
+    overlay.classList.add('fadeOut');
+    setTimeout(()=> overlay.style.display='none', 350);
+    // 展示形态选择
+    stepShape.scrollIntoView({behavior:'smooth', block:'start'});
   });
 
-  // 加载进度
+  // ---------- 选择形态 → 进入 Viewer ----------
+  cards.forEach(card => {
+    card.addEventListener('click', () => {
+      const chosen = card.getAttribute('data-shape') || MODELS[0];
+      // 展示 viewer 区
+      stepViewer.classList.remove('hidden');
+      // 设置滑条与模型
+      const idx = Math.max(0, MODELS.indexOf(chosen));
+      slider.value = (idx+1);
+      setModelByIndex(idx, {bustCache:true});
+      // 滚动到 viewer
+      stepViewer.scrollIntoView({behavior:'smooth', block:'start'});
+      // 开启自动示范（稍后 800ms）
+      setTimeout(startAutoDemo, 800);
+    });
+  });
+
+  // --------- Viewer：切换 & 进度 ----------
+  function setModelByIndex(idx, {bustCache=false}={}) {
+    const name = MODELS[idx];
+    curLabel.textContent = name.replace('.glb','');
+    openA.href = './' + name;
+    viewer.src = bustCache ? (name + '?v=' + Date.now()) : name;
+  }
+
+  // 滑条事件（去抖）
+  let debounce;
+  slider.addEventListener('input', () => {
+    const idx = Math.max(0, Math.min(MODELS.length-1, Number(slider.value)-1));
+    curLabel.textContent = MODELS[idx].replace('.glb','');
+    openA.href = './' + MODELS[idx];
+    stopAutoDemo(); // 一旦用户操作，停止自动示范
+    clearTimeout(debounce);
+    debounce = setTimeout(()=> setModelByIndex(idx, {bustCache:true}), 80);
+  });
+
+  // 进度监听
   viewer.addEventListener('progress', (e) => {
     const p = e.detail?.totalProgress ?? 0;
-    bar.value = p;
+    prog.value = p;
     pct.textContent = Math.round(p * 100) + '%';
   });
   viewer.addEventListener('load', () => {
-    bar.value = 1; pct.textContent = '100%';
-    console.log('✅ model loaded:', viewer.src);
+    prog.value = 1; pct.textContent = '100%';
   });
   viewer.addEventListener('error', (e) => {
-    console.error('❌ model-viewer error:', e.detail);
+    console.error('model-viewer error:', e.detail);
     pct.textContent = '错误';
   });
+
+  // --------- 自动示范动画（滑条自动轮播） ----------
+  let demoTimer = null;
+  let demoStep = 1;
+  let demoActive = false;
+
+  function startAutoDemo(){
+    if (demoActive) return;
+    demoActive = true;
+    demoTimer = setInterval(()=>{
+      demoStep = demoStep % MODELS.length + 1; // 1→2→3→1…
+      slider.value = demoStep;
+      const idx = demoStep - 1;
+      curLabel.textContent = MODELS[idx].replace('.glb','');
+      openA.href = './' + MODELS[idx];
+      setModelByIndex(idx, {bustCache:false});
+    }, 1800);
+  }
+  function stopAutoDemo(){
+    if (!demoActive) return;
+    clearInterval(demoTimer);
+    demoActive = false;
+  }
+
+  // 用户任意交互即停止自动示范
+  ['pointerdown','wheel','keydown','touchstart'].forEach(ev =>
+    document.addEventListener(ev, stopAutoDemo, {once:true, passive:true})
+  );
 </script>
 </body>
 </html>
+
