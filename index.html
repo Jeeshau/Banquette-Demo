@@ -1,174 +1,127 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>Banquette Demo + Modes + Ground Shadow</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- model-viewer -->
-  <script type="module" src="https://unpkg.com/@google/model-viewer@^4/dist/model-viewer.min.js"></script>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Model — Infinite Ground</title>
   <style>
-    :root{
-      --bg:#0f1115; --fg:#f5f7fb; --muted:#aab2c0; --brand:#7aa2ff;
+    /* 全屏无边框展示 */
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #000; /* 透明也可：改成 transparent */
+      overflow: hidden;
     }
-    html,body{height:100%;margin:0;font:14px/1.45 system-ui,sans-serif;color:var(--fg);background:var(--bg)}
-    .wrap{max-width:1100px;margin:0 auto;padding:20px}
+    .stage {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
 
-    /* 控件样式 */
-    .bar{margin-top:14px;background:#121722;border:1px solid #202634;border-radius:14px;padding:12px}
-    .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
-    .row-left{display:flex;gap:10px;align-items:center}
-    .pill{font-size:12px;padding:4px 8px;border:1px solid #263043;border-radius:999px;color:#9fb4d6;background:transparent}
-    progress{width:180px;height:10px}
+    /* model-viewer 填满舞台 */
+    model-viewer {
+      width: 100%;
+      height: 100%;
+      --poster-color: transparent;
+      background: transparent;
+    }
 
-    /* Viewer 容器 + 接地圆 */
-    .viewer-wrap { position: relative; }
-    model-viewer{width:100%;height:68vh;background:#0e131a;border:1px solid #202634;border-radius:18px}
-    .ground {
-      position:absolute;
-      left:50%; bottom:18px;
-      transform:translateX(-50%);
-      width:42%; height:10%;
-      background: radial-gradient(ellipse at center,
-                  rgba(0,0,0,0.35), rgba(0,0,0,0) 70%);
-      filter: blur(2px);
+    /* “无限地板”——不参与 3D 场景，只是一个页面上的视觉层 */
+    .infinite-ground {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) translateY(var(--lift, 0px)) scale(var(--scale, 1));
+      width: 120vmin;   /* 基础直径，会被 JS 动态缩放 */
+      height: 120vmin;
       pointer-events: none;
+      /* 椭圆渐变地面 + 轻微模糊，模拟落地衰减 */
+      background:
+        radial-gradient(ellipse at center,
+          rgba(0,0,0,0.35) 0%,
+          rgba(0,0,0,0.25) 20%,
+          rgba(0,0,0,0.08) 55%,
+          rgba(0,0,0,0.02) 78%,
+          rgba(0,0,0,0.0) 100%);
+      filter: blur(2px);
+      /* “压扁”成接地椭圆（视觉更贴地） */
+      transform-origin: center center;
+      border-radius: 50%;
+      /* 通过 CSS 变量控制“椭圆度” */
+      clip-path: ellipse(60% 25% at 50% 63%);
+      mix-blend-mode: multiply; /* HDRI 较亮时更自然 */
+    }
+
+    /* 可选：在极浅色背景下，切到叠加模式 */
+    @media (prefers-color-scheme: light) {
+      .infinite-ground { mix-blend-mode: multiply; }
     }
   </style>
+  <!-- 引入 model-viewer（官方 CDN） -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
+  <div class="stage">
+    <model-viewer id="mv"
+      src="model.glb"
+      camera-controls
+      touch-action="pan-y"
+      autoplay
+      exposure="1.0"
+      shadow-intensity="0.6"
+      shadow-softness="0.9"
+      environment-image="Background_sculpture_exhibition_4k.hdr"
+      skybox-image="Background_sculpture_exhibition_4k.hdr"
+      /* 关键：收敛相机，让主体更“贴脸” */
+      field-of-view="20deg"
+      camera-orbit="0deg 70deg 2.5m"
+      min-camera-orbit="auto auto 1.6m"
+      max-camera-orbit="auto auto 4.0m"
+      interaction-prompt="none"
+      style="background: transparent;">
+    </model-viewer>
 
-<div class="wrap">
-  <section id="stepViewer">
-    <div class="viewer-wrap">
-      <model-viewer id="viewer"
-        src="./model001.glb"
-        camera-controls
-        auto-rotate
-        shadow-intensity="1"
-        shadow-softness="0.9"
-        exposure="1.2"
-        environment-image="neutral"
-        autoplay>
-      </model-viewer>
-      <!-- 接地圆 -->
-      <div class="ground"></div>
-    </div>
+    <!-- 视觉用“无限地板”层（不影响取景与缩放） -->
+    <div class="infinite-ground" id="ground"></div>
+  </div>
 
-    <div class="bar">
-      <div class="row">
-        <div class="row-left">
-          <span class="pill">形态阶段</span>
-          <span id="curLabel">model001</span>
-        </div>
-        <div class="row-left">
-          <span>加载进度</span>
-          <progress id="prog" max="1" value="0"></progress>
-          <span id="pct">0%</span>
-        </div>
-        <!-- 渲染模式切换器 -->
-        <div class="row-left">
-          <span>显示模式</span>
-          <select id="modeSelect" class="pill">
-            <option value="arctic">Arctic</option>
-            <option value="shaded" selected>Shaded</option>
-            <option value="studio">Studio</option>
-            <option value="art">This is an art</option>
-          </select>
-        </div>
-      </div>
-      <input id="slider" type="range" min="1" max="3" step="1" value="1">
-      <div class="row" style="margin-top:6px">
-        <small>提示：拖动滑条切换阶段，拖拽模型可旋转/缩放</small>
-        <a id="open" href="./model001.glb" target="_blank">直接打开当前模型</a>
-      </div>
-    </div>
-  </section>
-</div>
+  <script>
+    // 让“地板椭圆”随着相机远近自适应大小与位置，
+    // 但这只是 2D 叠加层，不会改变 3D 场景的 framing。
+    const mv = document.getElementById('mv');
+    const ground = document.getElementById('ground');
 
-<script>
-  const MODELS = ["model001.glb","model002.glb","model003.glb"];
-  const viewer = document.getElementById('viewer');
-  const slider = document.getElementById('slider');
-  const curLabel = document.getElementById('curLabel');
-  const prog = document.getElementById('prog');
-  const pct = document.getElementById('pct');
-  const openA = document.getElementById('open');
-  const modeSelect = document.getElementById('modeSelect');
+    // 基础参数可按你模型体量微调
+    const BASE_SCALE = 1.0;      // 椭圆初始缩放
+    const LIFT_PX    = 140;      // 往下“落地”的像素偏移（越大越靠下）
+    const DEPTH_GAIN = 0.22;     // 相机半径对椭圆缩放的影响系数
 
-  // HDRI 路径
-  const HDR_SHADED = "https://modelviewer.dev/shared-assets/environments/spruit_sunrise_1k.hdr";
-  const HDR_STUDIO = "https://modelviewer.dev/shared-assets/environments/studio_small_09_1k.hdr";
-  const HDR_ART = "./Background_sculpture_exhibition_4k.hdr"; // 你的 HDRI
+    function updateGround() {
+      try {
+        const { radius } = mv.getCameraOrbit(); // m
+        // 根据相机半径调整地板大小（半径越远，椭圆越大）
+        const s = Math.max(0.6, BASE_SCALE + radius * DEPTH_GAIN);
+        ground.style.setProperty('--scale', s.toFixed(3));
+        ground.style.setProperty('--lift', LIFT_PX + 'px');
 
-  // 模型切换
-  function setModelByIndex(idx){
-    const name = MODELS[idx];
-    curLabel.textContent = name.replace('.glb','');
-    openA.href = './' + name;
-    viewer.src = name + '?v=' + Date.now();
-  }
-
-  slider.addEventListener('input', () => {
-    const idx = Math.max(0, Math.min(MODELS.length-1, Number(slider.value)-1));
-    setModelByIndex(idx);
-  });
-
-  // 进度监听
-  viewer.addEventListener('progress', (e) => {
-    const p = e.detail?.totalProgress ?? 0;
-    prog.value = p;
-    pct.textContent = Math.round(p * 100) + '%';
-  });
-  viewer.addEventListener('load', () => { prog.value = 1; pct.textContent = '100%'; });
-
-  // 模式切换
-  async function setHDRSafe(hdrUrl, {bg="#ddd", exposure=1.25, shadow=1} = {}) {
-    try {
-      const res = await fetch(hdrUrl, {cache:"no-store"});
-      if (!res.ok) throw new Error("HDRI not found");
-      viewer.style.background = bg;
-      viewer.setAttribute('environment-image', hdrUrl);
-      viewer.setAttribute('skybox-image', hdrUrl);
-      viewer.setAttribute('exposure', String(exposure));
-      viewer.setAttribute('shadow-intensity', String(shadow));
-      viewer.setAttribute('shadow-softness','0.9');
-    } catch(e) {
-      console.warn("[HDRI] load failed, fallback to neutral:", e.message);
-      viewer.removeAttribute('skybox-image');
-      viewer.setAttribute('environment-image','neutral');
-      viewer.style.background = '#ededed';
-      viewer.setAttribute('exposure','1.3');
-      viewer.setAttribute('shadow-intensity','0.8');
-      viewer.setAttribute('shadow-softness','0.9');
+        // 根据视角俯仰，微调椭圆“压扁”程度
+        const { theta, phi } = mv.getCameraOrbit();
+        const tilt = Math.min(Math.max((phi - Math.PI/3) / (Math.PI/3), 0, 1), 1); // 60°~120°之间归一化
+        const a = 60;                   // x 轴百分比
+        const b = 22 + 10 * tilt;       // y 轴百分比（越俯视越扁）
+        const y = 60 + 6 * tilt;        // 椭圆中心向下偏移的百分比
+        ground.style.clipPath = `ellipse(${a}% ${b}% at 50% ${y}%)`;
+      } catch (e) {
+        // 若 API 暂不可用，忽略
+      }
     }
-  }
 
-  async function applyMode(mode){
-    if (mode === 'arctic') {
-      viewer.removeAttribute('skybox-image');
-      viewer.setAttribute('environment-image','neutral');
-      viewer.style.background = '#f0f0f0';
-      viewer.setAttribute('exposure','1.25');
-      viewer.setAttribute('shadow-intensity','0.5');
-      viewer.setAttribute('shadow-softness','0.9');
-      return;
-    }
-    if (mode === 'shaded') {
-      await setHDRSafe(HDR_SHADED, {bg:"#000", exposure:1.2, shadow:1});
-      return;
-    }
-    if (mode === 'studio') {
-      await setHDRSafe(HDR_STUDIO, {bg:"#0e131a", exposure:1.05, shadow:0.9});
-      return;
-    }
-    if (mode === 'art') {
-      await setHDRSafe(HDR_ART, {bg:"#111", exposure:1.1, shadow:0.9});
-      return;
-    }
-  }
+    // 初次与相机变化时更新
+    mv.addEventListener('load', updateGround);
+    mv.addEventListener('camera-change', updateGround);
 
-  modeSelect?.addEventListener('change', e => applyMode(e.target.value));
-  applyMode(modeSelect?.value || 'shaded'); // 初始模式
-</script>
+    // 可选：窗口尺寸变化时也更新
+    window.addEventListener('resize', updateGround);
+  </script>
 </body>
 </html>
