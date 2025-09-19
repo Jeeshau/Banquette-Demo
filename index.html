@@ -2,132 +2,31 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <title>Banquette Demo + Onboarding Animations</title>
+  <title>Banquette Demo + Onboarding + Modes</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- model-viewer -->
   <script type="module" src="https://unpkg.com/@google/model-viewer@^4/dist/model-viewer.min.js"></script>
   <style>
     :root{
       --bg:#0f1115; --fg:#f5f7fb; --muted:#aab2c0; --brand:#7aa2ff; --card:#171a21;
-      --radius:16px;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--fg);background:var(--bg)}
-    a{color:var(--brand);text-decoration:none}
+    html,body{height:100%;margin:0;font:14px/1.45 system-ui,sans-serif;color:var(--fg);background:var(--bg)}
     .wrap{max-width:1100px;margin:0 auto;padding:20px}
-
-    /* ---------- Onboarding Overlay ---------- */
-    .overlay{
-      position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-      background: radial-gradient(1200px 600px at 70% -20%, rgba(122,162,255,0.15), transparent 55%),
-                  radial-gradient(900px 500px at 20% 120%, rgba(122,162,255,0.12), transparent 60%), #0b0e13;
-      z-index:50;
-    }
-    .panel{
-      width:min(720px,92%); background:linear-gradient(180deg,#151a22,#12161d);
-      border:1px solid #232a36; border-radius:24px; padding:28px; box-shadow:0 30px 80px rgba(0,0,0,0.45);
-      text-align:center;
-      animation:panelIn .6s ease both;
-    }
-    @keyframes panelIn{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
-
-    .hero{
-      height:140px; border-radius:18px; background:linear-gradient(90deg,#1b2230,#171d29);
-      border:1px solid #293244; position:relative; overflow:hidden; margin-bottom:18px;
-    }
-    /* 轻量“骨架”动效 + 线条扫光 */
-    .hero::before{
-      content:""; position:absolute; inset:0;
-      background:
-        linear-gradient(90deg,transparent 0%,rgba(255,255,255,.06) 50%,transparent 100%);
-      transform:translateX(-100%);
-      animation:shimmer 2.2s ease-in-out infinite;
-    }
-    @keyframes shimmer{to{transform:translateX(100%)}}
-
-    /* 小圆点节奏动画，暗示“参数在变化” */
-    .dots{display:flex; gap:8px; justify-content:center; margin:10px 0 4px}
-    .dot{width:8px; height:8px; border-radius:999px; background:#30405a; animation:bop 1.4s infinite}
-    .dot:nth-child(2){animation-delay:.15s}
-    .dot:nth-child(3){animation-delay:.3s}
-    @keyframes bop{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
-
-    .title{font-size:20px; font-weight:700; margin:6px 0 2px}
-    .desc{color:var(--muted); margin:0 0 12px}
-    .start{
-      display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:999px;
-      background:linear-gradient(180deg,#7aa2ff,#5d8cff); color:#0e1320; font-weight:700; border:none; cursor:pointer;
-      box-shadow:0 10px 24px rgba(122,162,255,.28);
-      transition:transform .12s ease, box-shadow .12s ease;
-    }
-    .start:hover{transform:translateY(-1px); box-shadow:0 14px 28px rgba(122,162,255,.34)}
-    .subhint{color:#90a0b8; font-size:12px; margin-top:8px}
-
-    /* ---------- Step: shape selection ---------- */
     .hidden{display:none}
-    .grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin-top:14px}
-    .card{
-      background:linear-gradient(180deg,#141923,#10151c); border:1px solid #232a36; border-radius:var(--radius);
-      padding:16px; cursor:pointer; transition:transform .12s ease, border-color .12s ease, box-shadow .12s ease;
-    }
-    .card:hover{transform:translateY(-2px); border-color:#324059; box-shadow:0 10px 24px rgba(0,0,0,.28)}
-    .card h4{margin:4px 0 6px}
-    .chip{display:inline-block; font-size:12px; padding:2px 8px; border-radius:999px; background:#1b2331; color:#9fb4d6; border:1px solid #2b3649}
-    .muted{color:#90a0b8; font-size:12px}
 
-    /* ---------- Viewer section ---------- */
-    model-viewer{width:100%; height:68vh; background:#0e131a; border:1px solid #202634; border-radius:18px}
-    .bar{margin-top:14px; background:#121722; border:1px solid #202634; border-radius:14px; padding:12px}
-    .row{display:flex; gap:10px; align-items:center; justify-content:space-between}
-    .row-left{display:flex; gap:10px; align-items:center}
-    .range{width:100%}
-    .pill{font-size:12px; padding:4px 8px; border:1px solid #263043; border-radius:999px; color:#9fb4d6}
-    progress{width:180px; height:10px}
-
-    .fadeOut{animation:fadeOut .35s ease forwards}
-    @keyframes fadeOut{to{opacity:0; visibility:hidden}}
+    /* 控件样式 */
+    .bar{margin-top:14px;background:#121722;border:1px solid #202634;border-radius:14px;padding:12px}
+    .row{display:flex;gap:10px;align-items:center;justify-content:space-between}
+    .row-left{display:flex;gap:10px;align-items:center}
+    .pill{font-size:12px;padding:4px 8px;border:1px solid #263043;border-radius:999px;color:#9fb4d6;background:transparent}
+    progress{width:180px;height:10px}
+    model-viewer{width:100%;height:68vh;background:#0e131a;border:1px solid #202634;border-radius:18px}
   </style>
 </head>
 <body>
 
-<!-- Onboarding Overlay -->
-<div id="overlay" class="overlay">
-  <div class="panel">
-    <div class="hero"></div>
-    <div class="dots" aria-hidden="true"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-    <div class="title">从构想到落地，只需几步</div>
-    <p class="desc">选择 Banquette 形态 → 拖动参数 → 一键生成渲染与 Base Startup Kit</p>
-    <button id="btnStart" class="start">Start</button>
-    <div class="subhint">无需安装软件 · 纯网页交互</div>
-  </div>
-</div>
-
 <div class="wrap">
-  <!-- Step 1: 形态选择 -->
-  <section id="stepShape">
-    <h3 style="margin:6px 0 2px">选择 Banquette 初始形态</h3>
-    <div class="muted">先确定大方向，我们会加载对应的初始模型</div>
-    <div class="grid" style="margin-bottom:6px">
-      <div class="card" data-shape="model001.glb">
-        <span class="chip">长条形</span>
-        <h4>Linear</h4>
-        <div class="muted">高效排布，适合狭长空间</div>
-      </div>
-      <div class="card" data-shape="model002.glb">
-        <span class="chip">曲形</span>
-        <h4>Curved</h4>
-        <div class="muted">柔和动线，视觉中心更强</div>
-      </div>
-      <div class="card" data-shape="model003.glb">
-        <span class="chip">环形</span>
-        <h4>Loop</h4>
-        <div class="muted">聚合社交，焦点式体验</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Step 2: Viewer + 参数演示 -->
-  <section id="stepViewer" class="hidden">
+  <section id="stepViewer">
     <model-viewer id="viewer"
       src="./model001.glb"
       camera-controls
@@ -142,22 +41,27 @@
       <div class="row">
         <div class="row-left">
           <span class="pill">形态阶段</span>
-          <span id="curLabel" class="muted">model001</span>
+          <span id="curLabel">model001</span>
         </div>
         <div class="row-left">
-          <span class="muted">加载进度</span>
+          <span>加载进度</span>
           <progress id="prog" max="1" value="0"></progress>
-          <span id="pct" class="muted">0%</span>
+          <span id="pct">0%</span>
+        </div>
+        <!-- 渲染模式切换器 -->
+        <div class="row-left">
+          <span>显示模式</span>
+          <select id="modeSelect" class="pill">
+            <option value="arctic">Arctic</option>
+            <option value="shaded" selected>Shaded</option>
+            <option value="studio">Studio</option>
+            <option value="art">This is an art</option>
+          </select>
         </div>
       </div>
-      <input id="slider" class="range" type="range" min="1" max="3" step="1" value="1" list="ticks">
-      <datalist id="ticks">
-        <option value="1" label="001"></option>
-        <option value="2" label="002"></option>
-        <option value="3" label="003"></option>
-      </datalist>
+      <input id="slider" type="range" min="1" max="3" step="1" value="1">
       <div class="row" style="margin-top:6px">
-        <small class="muted">提示：拖动滑条切换阶段，拖拽模型可旋转/缩放</small>
+        <small>提示：拖动滑条切换阶段，拖拽模型可旋转/缩放</small>
         <a id="open" href="./model001.glb" target="_blank">直接打开当前模型</a>
       </div>
     </div>
@@ -165,66 +69,31 @@
 </div>
 
 <script>
-  // --------- 共享状态 ---------
   const MODELS = ["model001.glb","model002.glb","model003.glb"];
-  const overlay = document.getElementById('overlay');
-  const btnStart = document.getElementById('btnStart');
-  const stepShape = document.getElementById('stepShape');
-  const stepViewer = document.getElementById('stepViewer');
-  const cards = Array.from(document.querySelectorAll('.card'));
-
   const viewer = document.getElementById('viewer');
   const slider = document.getElementById('slider');
   const curLabel = document.getElementById('curLabel');
   const prog = document.getElementById('prog');
   const pct = document.getElementById('pct');
   const openA = document.getElementById('open');
+  const modeSelect = document.getElementById('modeSelect');
 
-  // 预取，提升切换顺滑度（忽略失败也可）
-  MODELS.forEach(src => fetch(src).catch(()=>{}));
+  // HDRI 路径
+  const HDR_SHADED = "https://modelviewer.dev/shared-assets/environments/spruit_sunrise_1k.hdr";
+  const HDR_STUDIO = "https://modelviewer.dev/shared-assets/environments/studio_small_09_1k.hdr";
+  const HDR_ART = "./Background_sculpture_exhibition_4k.hdr"; // 你上传的 HDRI
 
-  // --------- Onboarding → Shape step ----------
-  btnStart.addEventListener('click', () => {
-    overlay.classList.add('fadeOut');
-    setTimeout(()=> overlay.style.display='none', 350);
-    // 展示形态选择
-    stepShape.scrollIntoView({behavior:'smooth', block:'start'});
-  });
-
-  // ---------- 选择形态 → 进入 Viewer ----------
-  cards.forEach(card => {
-    card.addEventListener('click', () => {
-      const chosen = card.getAttribute('data-shape') || MODELS[0];
-      // 展示 viewer 区
-      stepViewer.classList.remove('hidden');
-      // 设置滑条与模型
-      const idx = Math.max(0, MODELS.indexOf(chosen));
-      slider.value = (idx+1);
-      setModelByIndex(idx, {bustCache:true});
-      // 滚动到 viewer
-      stepViewer.scrollIntoView({behavior:'smooth', block:'start'});
-      // 开启自动示范（稍后 800ms）
-      setTimeout(startAutoDemo, 800);
-    });
-  });
-
-  // --------- Viewer：切换 & 进度 ----------
-  function setModelByIndex(idx, {bustCache=false}={}) {
+  // 模型切换
+  function setModelByIndex(idx){
     const name = MODELS[idx];
     curLabel.textContent = name.replace('.glb','');
     openA.href = './' + name;
-    viewer.src = bustCache ? (name + '?v=' + Date.now()) : name;
+    viewer.src = name + '?v=' + Date.now();
   }
 
-  // 滑条事件（去抖）
-  let debounce;
   slider.addEventListener('input', () => {
     const idx = Math.max(0, Math.min(MODELS.length-1, Number(slider.value)-1));
-    curLabel.textContent = MODELS[idx].replace('.glb','');
-    openA.href = './' + MODELS[idx];
-    stopAutoDemo(); // 一旦用户操作，停止自动示范
-    clearTimeout(debounce);
-    debounce = setTimeout(()=> setModelByIndex(idx, {bustCache:true}), 80);
+    setModelByIndex(idx);
   });
 
   // 进度监听
@@ -233,41 +102,43 @@
     prog.value = p;
     pct.textContent = Math.round(p * 100) + '%';
   });
-  viewer.addEventListener('load', () => {
-    prog.value = 1; pct.textContent = '100%';
-  });
-  viewer.addEventListener('error', (e) => {
-    console.error('model-viewer error:', e.detail);
-    pct.textContent = '错误';
-  });
+  viewer.addEventListener('load', () => { prog.value = 1; pct.textContent = '100%'; });
 
-  // --------- 自动示范动画（滑条自动轮播） ----------
-  let demoTimer = null;
-  let demoStep = 1;
-  let demoActive = false;
-
-  function startAutoDemo(){
-    if (demoActive) return;
-    demoActive = true;
-    demoTimer = setInterval(()=>{
-      demoStep = demoStep % MODELS.length + 1; // 1→2→3→1…
-      slider.value = demoStep;
-      const idx = demoStep - 1;
-      curLabel.textContent = MODELS[idx].replace('.glb','');
-      openA.href = './' + MODELS[idx];
-      setModelByIndex(idx, {bustCache:false});
-    }, 1800);
+  // 渲染模式切换
+  function applyMode(mode){
+    switch(mode){
+      case 'arctic':
+        viewer.style.background = '#f0f0f0';
+        viewer.removeAttribute('skybox-image');
+        viewer.setAttribute('environment-image', 'neutral');
+        viewer.setAttribute('shadow-intensity', '0.5');
+        viewer.setAttribute('exposure', '1.2');
+        break;
+      case 'shaded':
+        viewer.style.background = '#000';
+        viewer.setAttribute('environment-image', HDR_SHADED);
+        viewer.setAttribute('skybox-image', HDR_SHADED);
+        viewer.setAttribute('shadow-intensity', '1');
+        viewer.setAttribute('exposure', '1');
+        break;
+      case 'studio':
+        viewer.style.background = '#0e131a';
+        viewer.setAttribute('environment-image', HDR_STUDIO);
+        viewer.setAttribute('skybox-image', HDR_STUDIO);
+        viewer.setAttribute('shadow-intensity', '0.8');
+        viewer.setAttribute('exposure', '1.05');
+        break;
+      case 'art':
+        viewer.style.background = '#111';
+        viewer.setAttribute('environment-image', HDR_ART);
+        viewer.setAttribute('skybox-image', HDR_ART);
+        viewer.setAttribute('shadow-intensity', '0.9');
+        viewer.setAttribute('exposure', '1.1');
+        break;
+    }
   }
-  function stopAutoDemo(){
-    if (!demoActive) return;
-    clearInterval(demoTimer);
-    demoActive = false;
-  }
-
-  // 用户任意交互即停止自动示范
-  ['pointerdown','wheel','keydown','touchstart'].forEach(ev =>
-    document.addEventListener(ev, stopAutoDemo, {once:true, passive:true})
-  );
+  modeSelect.addEventListener('change', e => applyMode(e.target.value));
+  applyMode(modeSelect.value); // 初始模式
 </script>
 </body>
 </html>
