@@ -1,97 +1,122 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>调节相机角度 / 距离</title>
-  <style>
-    html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
-    model-viewer { width: 100%; height: 100%; background: transparent; }
-    .panel {
-      position: absolute; left: 12px; top: 12px;
-      background: rgba(0,0,0,.6); color:#fff;
-      padding: 10px; border-radius: 10px;
-      font: 13px sans-serif; line-height: 1.4;
-    }
-    .row { margin-bottom: 8px; }
-    .row input[type=range] { width: 180px; }
-    .row input[type=number] { width: 60px; }
-    label { display: inline-block; width: 70px; }
-  </style>
-  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>角度/距离调节 — 稳定版</title>
+<style>
+  html,body{height:100%;margin:0;background:#000;overflow:hidden}
+  model-viewer{width:100%;height:100%;background:transparent}
+  .panel{position:absolute;left:12px;top:12px;background:rgba(0,0,0,.6);color:#fff;
+    padding:10px;border-radius:10px;font:13px sans-serif;line-height:1.4}
+  .row{margin-bottom:8px}
+  .row input[type=range]{width:200px}
+  .row input[type=number]{width:70px}
+  label{display:inline-block;width:76px}
+</style>
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
   <model-viewer id="mv"
     src="./model003.glb"
     camera-controls
+    interaction-prompt="none"
     field-of-view="20deg"
-    camera-orbit="0deg 60deg 150in"
-    camera-target="0m 0.889m 0m"
-    style="background: transparent;">
+    camera-orbit="0deg 60deg 3.81m"        <!-- 3.81m ≈ 150" -->
+    camera-target="0m 0.889m 0m"           <!-- 0.889m ≈ 35" -->
+    min-camera-orbit="auto 0deg 0.25m"     <!-- 夹紧下限：φ≥0°；半径≥0.25m 防止贴脸 -->
+    max-camera-orbit="auto 90deg 100m"     <!-- 夹紧上限：φ≤90°；半径上限放宽 -->
+    style="background:transparent">
   </model-viewer>
 
   <div class="panel">
     <div class="row">
       <label>θ (水平)</label>
-      <input type="range" id="theta" min="-180" max="180" step="1" value="0">
-      <input type="number" id="thetaNum" min="-180" max="180" step="1" value="0">
+      <input type="range" id="theta" min="-180" max="180" step="0.1" value="0">
+      <input type="number" id="thetaNum" min="-180" max="180" step="0.1" value="0">
     </div>
     <div class="row">
       <label>φ (俯仰)</label>
-      <input type="range" id="phi" min="0" max="90" step="1" value="60">
-      <input type="number" id="phiNum" min="0" max="90" step="1" value="60">
+      <input type="range" id="phi" min="0" max="90" step="0.1" value="60">
+      <input type="number" id="phiNum" min="0" max="90" step="0.1" value="60">
     </div>
     <div class="row">
       <label>r (距离)</label>
-      <input type="range" id="radius" min="10" max="600" step="1" value="150">
-      <input type="number" id="radiusNum" min="10" max="600" step="1" value="150">
+      <input type="range" id="radiusIn" min="10" max="600" step="1" value="150">
+      <input type="number" id="radiusInNum" min="10" max="600" step="1" value="150"> "
     </div>
     <div class="row">
       <label>Target Y</label>
-      <input type="range" id="targetY" min="-120" max="120" step="1" value="35">
-      <input type="number" id="targetYNum" min="-120" max="120" step="1" value="35">
+      <input type="range" id="targetYIn" min="-120" max="120" step="0.5" value="35">
+      <input type="number" id="targetYInNum" min="-120" max="120" step="0.5" value="35"> "
     </div>
     <div class="row">
       <label><input type="checkbox" id="hdr"> HDRI</label>
     </div>
   </div>
 
-  <script>
-    const mv = document.getElementById('mv');
-    const inToM = inch => inch * 0.0254;
+<script>
+  const mv = document.getElementById('mv');
+  const inToM = inch => inch * 0.0254;
+  const clamp = (v, a, b) => Math.min(Math.max(v, a), b);
 
-    function updateOrbit() {
-      const t = document.getElementById('theta').value;
-      const p = document.getElementById('phi').value;
-      const r = document.getElementById('radius').value;
-      mv.cameraOrbit = `${t}deg ${p}deg ${r}in`;
+  // 双向绑定小工具
+  function bind(rangeId, numId, onChange){
+    const r=document.getElementById(rangeId), n=document.getElementById(numId);
+    r.addEventListener('input', ()=>{ n.value=r.value; onChange(); });
+    n.addEventListener('input', ()=>{ r.value=n.value; onChange(); });
+  }
+
+  // 更新相机（角度/距离）
+  function updateOrbit(){
+    const t = parseFloat(document.getElementById('theta').value);
+    const p = parseFloat(document.getElementById('phi').value);        // 已限制 0–90
+    const rIn = parseFloat(document.getElementById('radiusIn').value); // 英寸 → 米
+    const rM = inToM(rIn);
+    mv.cameraOrbit = `${t}deg ${p}deg ${rM}m`;
+    // 同时刷新 min/max，保证交互也不越界
+    mv.minCameraOrbit = `auto 0deg 0.25m`;
+    mv.maxCameraOrbit = `auto 90deg 100m`;
+  }
+
+  // 更新目标点高度（英寸 → 米）
+  function updateTarget(){
+    const yIn = parseFloat(document.getElementById('targetYIn').value);
+    mv.cameraTarget = `0m ${inToM(yIn)}m 0m`;
+  }
+
+  // 绑定控件
+  bind('theta','thetaNum', updateOrbit);
+  bind('phi','phiNum', updateOrbit);
+  bind('radiusIn','radiusInNum', updateOrbit);
+  bind('targetYIn','targetYInNum', updateTarget);
+
+  // 勾选后加载/移除 HDRI（相对路径）
+  document.getElementById('hdr').addEventListener('change', e=>{
+    if(e.target.checked){
+      mv.setAttribute('environment-image','./Background_sculpture_exhibition_4k.hdr');
+      mv.setAttribute('skybox-image','./Background_sculpture_exhibition_4k.hdr');
+      mv.setAttribute('exposure','1.0');
+    }else{
+      mv.removeAttribute('environment-image');
+      mv.removeAttribute('skybox-image');
     }
-    function updateTarget() {
-      const y = document.getElementById('targetY').value;
-      mv.cameraTarget = `0m ${inToM(y)}m 0m`;
-    }
+  });
 
-    function bind(rangeId, numId, cb) {
-      const range = document.getElementById(rangeId);
-      const num   = document.getElementById(numId);
-      range.addEventListener('input', () => { num.value = range.value; cb(); });
-      num.addEventListener('input', () => { range.value = num.value; cb(); });
-    }
+  // 二次保障：用户拖拽时，把 φ 强制夹紧到 0–90；半径为正
+  mv.addEventListener('camera-change', ()=>{
+    const {theta, phi, radius} = mv.getCameraOrbit();
+    const tDeg = theta * 180/Math.PI;
+    const pDeg = clamp(phi * 180/Math.PI, 0, 90);
+    const rM = Math.max(radius, 0.001);
+    mv.cameraOrbit = `${tDeg}deg ${pDeg}deg ${rM}m`;
+  });
 
-    bind('theta','thetaNum', updateOrbit);
-    bind('phi','phiNum', updateOrbit);
-    bind('radius','radiusNum', updateOrbit);
-    bind('targetY','targetYNum', updateTarget);
-
-    document.getElementById('hdr').addEventListener('change', e => {
-      if (e.target.checked) {
-        mv.setAttribute('environment-image','./Background_sculpture_exhibition_4k.hdr');
-        mv.setAttribute('skybox-image','./Background_sculpture_exhibition_4k.hdr');
-      } else {
-        mv.removeAttribute('environment-image');
-        mv.removeAttribute('skybox-image');
-      }
-    });
-  </script>
+  // 初始同步一次（150"→3.81m, φ=60°, Y=35"）
+  window.addEventListener('load', ()=>{
+    updateTarget();
+    updateOrbit();
+  });
+</script>
 </body>
 </html>
