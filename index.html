@@ -1,135 +1,85 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Viewer — fixed 150" / Z≈35"</title>
+  <title>HDRI Test — R=150" / Z≈35"</title>
   <style>
     html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
-    .wrap { position: relative; width: 100%; height: 100%; }
     model-viewer { width: 100%; height: 100%; background: transparent; --poster-color: transparent; }
-    .toolbar {
-      position: absolute; left: 12px; top: 12px; display: flex; gap: 8px; flex-wrap: wrap;
-      background: rgba(0,0,0,.35); backdrop-filter: blur(6px);
-      padding: 8px; border-radius: 10px; font: 14px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
-      color: #fff;
+    .ui {
+      position: absolute; left: 12px; top: 12px; display: flex; gap: 10px; align-items: center;
+      padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.35); backdrop-filter: blur(6px);
+      color:#fff; font: 14px/1 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
     }
-    .toolbar select, .toolbar button, .toolbar label { font-size: 14px; }
-    .toolbar button { cursor: pointer; border: 0; border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,.14); color:#fff; }
-    .toolbar button.primary { background:#fff; color:#111; }
-    .msg {
-      position: absolute; right: 12px; bottom: 12px; max-width: 38ch;
-      background: rgba(0,0,0,.4); color:#fff; padding: 8px 10px; border-radius: 8px;
-      font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
-      white-space: pre-wrap;
-    }
+    select, label { font-size: 14px; color:#fff; }
   </style>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
-  <div class="wrap">
-    <model-viewer id="mv"
-      src="model001.glb"
-      camera-controls
-      interaction-prompt="none"
-      disable-zoom
-      field-of-view="20deg"
-      style="background: transparent;"
-      camera-orbit="0deg 13.49deg 150in"
-      min-camera-orbit="auto 13.49deg 150in"
-      max-camera-orbit="auto 13.49deg 150in"
-      reveal-when-loaded
-    ></model-viewer>
+  <model-viewer id="mv"
+    src="./model001.glb"
+    camera-controls
+    interaction-prompt="none"
+    disable-zoom
+    field-of-view="20deg"
+    camera-orbit="0deg 13.49deg 150in"
+    min-camera-orbit="auto 13.49deg 150in"
+    max-camera-orbit="auto 13.49deg 150in"
+    reveal-when-loaded
+    style="background: transparent;">
+  </model-viewer>
 
-    <div class="toolbar">
-      <label>Model:
-        <select id="modelSel">
-          <option value="model001.glb">model001.glb</option>
-          <option value="model002.glb">model002.glb</option>
-          <option value="model003.glb">model003.glb</option>
-        </select>
-      </label>
-      <button id="btn150" class="primary">R=150"</button>
-      <button id="btnFrame">Frame 找回画面</button>
-      <label title="建议用本地 http 服务打开后再勾选">
-        <input type="checkbox" id="hdrToggle"> HDRI
-      </label>
-    </div>
-
-    <div class="msg" id="msg">Ready.</div>
+  <div class="ui">
+    <label>Model:
+      <select id="sel">
+        <option value="./model001.glb">model001.glb</option>
+        <option value="./model002.glb">model002.glb</option>
+        <option value="./model003.glb">model003.glb</option>
+      </select>
+    </label>
+    <label title="勾选后再加载 HDRI（需与 index.html 同目录）">
+      <input type="checkbox" id="hdr"> HDRI
+    </label>
   </div>
 
   <script>
-    const mv = document.getElementById('mv');
-    const sel = document.getElementById('modelSel');
-    const btn150 = document.getElementById('btn150');
-    const btnFrame = document.getElementById('btnFrame');
-    const hdrToggle = document.getElementById('hdrToggle');
-    const msgEl = document.getElementById('msg');
+    const mv   = document.getElementById('mv');
+    const sel  = document.getElementById('sel');
+    const hdr  = document.getElementById('hdr');
 
-    const TARGET_Z_IN = 35; // 目标高度（英寸）
-    const toDeg = rad => rad * 180/Math.PI;
-    const phiFor = rIn => (Math.asin(Math.max(Math.min(TARGET_Z_IN / rIn, 1), 0)) * 180 / Math.PI);
+    // 固定高度≈35"与距离150"（φ = asin(35/150) ≈ 13.49°）
+    const TARGET_Z_IN = 35;
+    const phiDeg = (rIn) => Math.asin(Math.max(Math.min(TARGET_Z_IN / rIn, 1), 0)) * 180 / Math.PI;
 
-    function note(t) { msgEl.textContent = t; }
-
-    function setFixed(rIn) {
-      const { theta } = mv.getCameraOrbit();
-      const phi = phiFor(rIn);
-      const orbit = `${toDeg(theta).toFixed(2)}deg ${phi.toFixed(2)}deg ${rIn}in`;
+    function lockCamera(rIn) {
+      const theta = mv.getCameraOrbit().theta * 180 / Math.PI; // 保持当前水平角
+      const phi   = phiDeg(rIn);
+      const orbit = `${theta.toFixed(2)}deg ${phi.toFixed(2)}deg ${rIn}in`;
       mv.setAttribute('camera-orbit', orbit);
       mv.setAttribute('min-camera-orbit', `auto ${phi.toFixed(2)}deg ${rIn}in`);
       mv.setAttribute('max-camera-orbit', `auto ${phi.toFixed(2)}deg ${rIn}in`);
-      note(`Lock: Z≈${TARGET_Z_IN}", R=${rIn}"`);
     }
 
-    // 估算一个可见的半径（仍保持 Z≈35"）
-    function frameAndLock() {
-      try {
-        const box = mv.getBoundingBox(); // {minX,maxX,minY,maxY,minZ,maxZ}
-        if (!box) throw new Error('No bounding box yet.');
-        const dx = box.maxX - box.minX;
-        const dy = box.maxY - box.minY;
-        const dz = box.maxZ - box.minZ;
-        const diag = Math.sqrt(dx*dx + dy*dy + dz*dz);
-        const rEstM = Math.max(0.01, diag * 1.2); // 根据 FOV 可调
-        const rIn = Math.round(rEstM * 39.3701);
-        setFixed(rIn);
-      } catch (e) {
-        note('Frame 失败（模型未加载或 API 不可用）。');
-      }
-    }
-
-    // 切模型（严格使用无空格名）
+    // 切换模型
     sel.addEventListener('change', () => {
-      mv.setAttribute('src', sel.value);
-      note(`Loading: ${sel.value}`);
+      mv.setAttribute('src', sel.value); // ./model001.glb 等相对路径
     });
 
-    // 回到 150"
-    btn150.addEventListener('click', () => setFixed(150));
-
-    // 找回画面
-    btnFrame.addEventListener('click', frameAndLock);
-
-    // HDRI 开关（需 http 服务，否则可能黑屏）
-    hdrToggle.addEventListener('change', () => {
-      if (hdrToggle.checked) {
-        mv.setAttribute('environment-image', 'Background_sculpture_exhibition_4k.hdr');
-        mv.setAttribute('skybox-image', 'Background_sculpture_exhibition_4k.hdr');
+    // 勾选后加载/移除 HDRI（与 index.html 同目录）
+    hdr.addEventListener('change', () => {
+      if (hdr.checked) {
+        mv.setAttribute('environment-image', './Background_sculpture_exhibition_4k.hdr');
+        mv.setAttribute('skybox-image', './Background_sculpture_exhibition_4k.hdr');
         mv.setAttribute('exposure', '1.0');
-        note('HDRI 已启用（若黑屏，请通过本地服务器打开）。');
       } else {
         mv.removeAttribute('environment-image');
         mv.removeAttribute('skybox-image');
-        note('HDRI 已关闭。');
       }
     });
 
-    mv.addEventListener('load', () => { note(`Loaded: ${sel.value}`); setFixed(150); });
-    mv.addEventListener('error', () => {
-      note('加载出错：请检查 glb 文件名与路径；如使用 HDRI，请通过 http 服务器打开。');
-    });
+    // 初次加载后锁定一次
+    mv.addEventListener('load', () => lockCamera(150));
   </script>
 </body>
 </html>
