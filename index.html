@@ -3,22 +3,26 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Model Viewer — Fixed Z=35" with Distance Presets</title>
+  <title>Viewer — fixed 150" / Z≈35"</title>
   <style>
     html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
     .wrap { position: relative; width: 100%; height: 100%; }
     model-viewer { width: 100%; height: 100%; background: transparent; --poster-color: transparent; }
     .toolbar {
-      position: absolute; left: 16px; bottom: 16px; display: flex; gap: 8px;
-      padding: 8px; border-radius: 12px; background: rgba(0,0,0,0.35); backdrop-filter: blur(6px);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      position: absolute; left: 12px; top: 12px; display: flex; gap: 8px; flex-wrap: wrap;
+      background: rgba(0,0,0,.35); backdrop-filter: blur(6px);
+      padding: 8px; border-radius: 10px; font: 14px ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      color: #fff;
     }
-    .toolbar button {
-      border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer; font-size: 14px;
-      background: rgba(255,255,255,0.14); color: #fff;
+    .toolbar select, .toolbar button, .toolbar label { font-size: 14px; }
+    .toolbar button { cursor: pointer; border: 0; border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,.14); color:#fff; }
+    .toolbar button.primary { background:#fff; color:#111; }
+    .msg {
+      position: absolute; right: 12px; bottom: 12px; max-width: 38ch;
+      background: rgba(0,0,0,.4); color:#fff; padding: 8px 10px; border-radius: 8px;
+      font: 12px/1.4 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial;
+      white-space: pre-wrap;
     }
-    .toolbar button.active { background: #fff; color: #111; }
-    .toolbar .status { color: #fff; opacity: .9; padding: 8px 12px; }
   </style>
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
@@ -29,71 +33,103 @@
       camera-controls
       interaction-prompt="none"
       disable-zoom
-      environment-image="Background_sculpture_exhibition_4k.hdr"
-      skybox-image="Background_sculpture_exhibition_4k.hdr"
       field-of-view="20deg"
-
-      <!-- 初始：r=150in，对应 φ≈13.49°；仅允许水平旋转 -->
+      style="background: transparent;"
       camera-orbit="0deg 13.49deg 150in"
       min-camera-orbit="auto 13.49deg 150in"
       max-camera-orbit="auto 13.49deg 150in"
+      reveal-when-loaded
     ></model-viewer>
 
     <div class="toolbar">
-      <button data-r="150">150"</button>
-      <button data-r="200">200"</button>
-      <button data-r="250">250"</button>
-      <div class="status" id="status">Z≈35", R=150"</div>
+      <label>Model:
+        <select id="modelSel">
+          <option value="model001.glb">model001.glb</option>
+          <option value="model002.glb">model002.glb</option>
+          <option value="model003.glb">model003.glb</option>
+        </select>
+      </label>
+      <button id="btn150" class="primary">R=150"</button>
+      <button id="btnFrame">Frame 找回画面</button>
+      <label title="建议用本地 http 服务打开后再勾选">
+        <input type="checkbox" id="hdrToggle"> HDRI
+      </label>
     </div>
+
+    <div class="msg" id="msg">Ready.</div>
   </div>
 
   <script>
     const mv = document.getElementById('mv');
-    const statusEl = document.getElementById('status');
-    const buttons = Array.from(document.querySelectorAll('.toolbar button'));
+    const sel = document.getElementById('modelSel');
+    const btn150 = document.getElementById('btn150');
+    const btnFrame = document.getElementById('btnFrame');
+    const hdrToggle = document.getElementById('hdrToggle');
+    const msgEl = document.getElementById('msg');
 
-    // 常量：目标高度（英寸）
-    const TARGET_Z_IN = 35;
+    const TARGET_Z_IN = 35; // 目标高度（英寸）
+    const toDeg = rad => rad * 180/Math.PI;
+    const phiFor = rIn => (Math.asin(Math.max(Math.min(TARGET_Z_IN / rIn, 1), 0)) * 180 / Math.PI);
 
-    // 角度/弧度互转
-    const toDeg = (rad) => rad * 180 / Math.PI;
+    function note(t) { msgEl.textContent = t; }
 
-    // 依据距离 r（英寸）计算俯仰角 φ（度）
-    function phiDegFor(rIn) {
-      const ratio = Math.max(Math.min(TARGET_Z_IN / rIn, 1), 0); // clamp
-      return Math.asin(ratio) * 180 / Math.PI;
+    function setFixed(rIn) {
+      const { theta } = mv.getCameraOrbit();
+      const phi = phiFor(rIn);
+      const orbit = `${toDeg(theta).toFixed(2)}deg ${phi.toFixed(2)}deg ${rIn}in`;
+      mv.setAttribute('camera-orbit', orbit);
+      mv.setAttribute('min-camera-orbit', `auto ${phi.toFixed(2)}deg ${rIn}in`);
+      mv.setAttribute('max-camera-orbit', `auto ${phi.toFixed(2)}deg ${rIn}in`);
+      note(`Lock: Z≈${TARGET_Z_IN}", R=${rIn}"`);
     }
 
-    // 设置相机：保持当前 θ，仅更新 φ 和 r，并锁定 min/max
-    function setDistanceInches(rIn) {
-      const { theta } = mv.getCameraOrbit(); // radians
-      const thetaDeg = toDeg(theta);
-      const phiDeg = phiDegFor(rIn);
-
-      const orbitStr = `${thetaDeg.toFixed(2)}deg ${phiDeg.toFixed(2)}deg ${rIn}in`;
-      mv.setAttribute('camera-orbit', orbitStr);
-      mv.setAttribute('min-camera-orbit', `auto ${phiDeg.toFixed(2)}deg ${rIn}in`);
-      mv.setAttribute('max-camera-orbit', `auto ${phiDeg.toFixed(2)}deg ${rIn}in`);
-
-      // UI 状态
-      buttons.forEach(b => b.classList.toggle('active', +b.dataset.r === rIn));
-      statusEl.textContent = `Z≈${TARGET_Z_IN}", R=${rIn}"`;
+    // 估算一个可见的半径（仍保持 Z≈35"）
+    function frameAndLock() {
+      try {
+        const box = mv.getBoundingBox(); // {minX,maxX,minY,maxY,minZ,maxZ}
+        if (!box) throw new Error('No bounding box yet.');
+        const dx = box.maxX - box.minX;
+        const dy = box.maxY - box.minY;
+        const dz = box.maxZ - box.minZ;
+        const diag = Math.sqrt(dx*dx + dy*dy + dz*dz);
+        const rEstM = Math.max(0.01, diag * 1.2); // 根据 FOV 可调
+        const rIn = Math.round(rEstM * 39.3701);
+        setFixed(rIn);
+      } catch (e) {
+        note('Frame 失败（模型未加载或 API 不可用）。');
+      }
     }
 
-    // 绑定按钮
-    buttons.forEach(btn => {
-      btn.addEventListener('click', () => setDistanceInches(+btn.dataset.r));
+    // 切模型（严格使用无空格名）
+    sel.addEventListener('change', () => {
+      mv.setAttribute('src', sel.value);
+      note(`Loading: ${sel.value}`);
     });
 
-    // 模型加载完成后，默认激活 150"
-    mv.addEventListener('load', () => setDistanceInches(150));
+    // 回到 150"
+    btn150.addEventListener('click', () => setFixed(150));
 
-    // 可选：窗口尺寸变化时维持锁定（不做任何缩放，让构图稳定）
-    window.addEventListener('resize', () => {
-      const active = buttons.find(b => b.classList.contains('active')) || buttons[0];
-      setDistanceInches(+active.dataset.r);
+    // 找回画面
+    btnFrame.addEventListener('click', frameAndLock);
+
+    // HDRI 开关（需 http 服务，否则可能黑屏）
+    hdrToggle.addEventListener('change', () => {
+      if (hdrToggle.checked) {
+        mv.setAttribute('environment-image', 'Background_sculpture_exhibition_4k.hdr');
+        mv.setAttribute('skybox-image', 'Background_sculpture_exhibition_4k.hdr');
+        mv.setAttribute('exposure', '1.0');
+        note('HDRI 已启用（若黑屏，请通过本地服务器打开）。');
+      } else {
+        mv.removeAttribute('environment-image');
+        mv.removeAttribute('skybox-image');
+        note('HDRI 已关闭。');
+      }
+    });
+
+    mv.addEventListener('load', () => { note(`Loaded: ${sel.value}`); setFixed(150); });
+    mv.addEventListener('error', () => {
+      note('加载出错：请检查 glb 文件名与路径；如使用 HDRI，请通过 http 服务器打开。');
     });
   </script>
 </body>
 </html>
-
