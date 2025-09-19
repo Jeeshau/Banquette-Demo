@@ -3,125 +3,96 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Model — Infinite Ground</title>
+  <title>Model Viewer — Fixed Z=35" with Distance Presets</title>
   <style>
-    /* 全屏无边框展示 */
-    html, body {
-      height: 100%;
-      margin: 0;
-      background: #000; /* 透明也可：改成 transparent */
-      overflow: hidden;
+    html, body { height: 100%; margin: 0; background: #000; overflow: hidden; }
+    .wrap { position: relative; width: 100%; height: 100%; }
+    model-viewer { width: 100%; height: 100%; background: transparent; --poster-color: transparent; }
+    .toolbar {
+      position: absolute; left: 16px; bottom: 16px; display: flex; gap: 8px;
+      padding: 8px; border-radius: 12px; background: rgba(0,0,0,0.35); backdrop-filter: blur(6px);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
     }
-    .stage {
-      position: relative;
-      width: 100%;
-      height: 100%;
+    .toolbar button {
+      border: 0; border-radius: 999px; padding: 8px 12px; cursor: pointer; font-size: 14px;
+      background: rgba(255,255,255,0.14); color: #fff;
     }
-
-    /* model-viewer 填满舞台 */
-    model-viewer {
-      width: 100%;
-      height: 100%;
-      --poster-color: transparent;
-      background: transparent;
-    }
-
-    /* “无限地板”——不参与 3D 场景，只是一个页面上的视觉层 */
-    .infinite-ground {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%) translateY(var(--lift, 0px)) scale(var(--scale, 1));
-      width: 120vmin;   /* 基础直径，会被 JS 动态缩放 */
-      height: 120vmin;
-      pointer-events: none;
-      /* 椭圆渐变地面 + 轻微模糊，模拟落地衰减 */
-      background:
-        radial-gradient(ellipse at center,
-          rgba(0,0,0,0.35) 0%,
-          rgba(0,0,0,0.25) 20%,
-          rgba(0,0,0,0.08) 55%,
-          rgba(0,0,0,0.02) 78%,
-          rgba(0,0,0,0.0) 100%);
-      filter: blur(2px);
-      /* “压扁”成接地椭圆（视觉更贴地） */
-      transform-origin: center center;
-      border-radius: 50%;
-      /* 通过 CSS 变量控制“椭圆度” */
-      clip-path: ellipse(60% 25% at 50% 63%);
-      mix-blend-mode: multiply; /* HDRI 较亮时更自然 */
-    }
-
-    /* 可选：在极浅色背景下，切到叠加模式 */
-    @media (prefers-color-scheme: light) {
-      .infinite-ground { mix-blend-mode: multiply; }
-    }
+    .toolbar button.active { background: #fff; color: #111; }
+    .toolbar .status { color: #fff; opacity: .9; padding: 8px 12px; }
   </style>
-  <!-- 引入 model-viewer（官方 CDN） -->
   <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
 </head>
 <body>
-  <div class="stage">
+  <div class="wrap">
     <model-viewer id="mv"
       src="model.glb"
       camera-controls
-      touch-action="pan-y"
-      autoplay
-      exposure="1.0"
-      shadow-intensity="0.6"
-      shadow-softness="0.9"
+      interaction-prompt="none"
+      disable-zoom
       environment-image="Background_sculpture_exhibition_4k.hdr"
       skybox-image="Background_sculpture_exhibition_4k.hdr"
-      /* 关键：收敛相机，让主体更“贴脸” */
       field-of-view="20deg"
-      camera-orbit="0deg 70deg 2.5m"
-      min-camera-orbit="auto auto 1.6m"
-      max-camera-orbit="auto auto 4.0m"
-      interaction-prompt="none"
-      style="background: transparent;">
-    </model-viewer>
 
-    <!-- 视觉用“无限地板”层（不影响取景与缩放） -->
-    <div class="infinite-ground" id="ground"></div>
+      <!-- 初始：r=150in，对应 φ≈13.49°；仅允许水平旋转 -->
+      camera-orbit="0deg 13.49deg 150in"
+      min-camera-orbit="auto 13.49deg 150in"
+      max-camera-orbit="auto 13.49deg 150in"
+    ></model-viewer>
+
+    <div class="toolbar">
+      <button data-r="150">150"</button>
+      <button data-r="200">200"</button>
+      <button data-r="250">250"</button>
+      <div class="status" id="status">Z≈35", R=150"</div>
+    </div>
   </div>
 
   <script>
-    // 让“地板椭圆”随着相机远近自适应大小与位置，
-    // 但这只是 2D 叠加层，不会改变 3D 场景的 framing。
     const mv = document.getElementById('mv');
-    const ground = document.getElementById('ground');
+    const statusEl = document.getElementById('status');
+    const buttons = Array.from(document.querySelectorAll('.toolbar button'));
 
-    // 基础参数可按你模型体量微调
-    const BASE_SCALE = 1.0;      // 椭圆初始缩放
-    const LIFT_PX    = 140;      // 往下“落地”的像素偏移（越大越靠下）
-    const DEPTH_GAIN = 0.22;     // 相机半径对椭圆缩放的影响系数
+    // 常量：目标高度（英寸）
+    const TARGET_Z_IN = 35;
 
-    function updateGround() {
-      try {
-        const { radius } = mv.getCameraOrbit(); // m
-        // 根据相机半径调整地板大小（半径越远，椭圆越大）
-        const s = Math.max(0.6, BASE_SCALE + radius * DEPTH_GAIN);
-        ground.style.setProperty('--scale', s.toFixed(3));
-        ground.style.setProperty('--lift', LIFT_PX + 'px');
+    // 角度/弧度互转
+    const toDeg = (rad) => rad * 180 / Math.PI;
 
-        // 根据视角俯仰，微调椭圆“压扁”程度
-        const { theta, phi } = mv.getCameraOrbit();
-        const tilt = Math.min(Math.max((phi - Math.PI/3) / (Math.PI/3), 0, 1), 1); // 60°~120°之间归一化
-        const a = 60;                   // x 轴百分比
-        const b = 22 + 10 * tilt;       // y 轴百分比（越俯视越扁）
-        const y = 60 + 6 * tilt;        // 椭圆中心向下偏移的百分比
-        ground.style.clipPath = `ellipse(${a}% ${b}% at 50% ${y}%)`;
-      } catch (e) {
-        // 若 API 暂不可用，忽略
-      }
+    // 依据距离 r（英寸）计算俯仰角 φ（度）
+    function phiDegFor(rIn) {
+      const ratio = Math.max(Math.min(TARGET_Z_IN / rIn, 1), 0); // clamp
+      return Math.asin(ratio) * 180 / Math.PI;
     }
 
-    // 初次与相机变化时更新
-    mv.addEventListener('load', updateGround);
-    mv.addEventListener('camera-change', updateGround);
+    // 设置相机：保持当前 θ，仅更新 φ 和 r，并锁定 min/max
+    function setDistanceInches(rIn) {
+      const { theta } = mv.getCameraOrbit(); // radians
+      const thetaDeg = toDeg(theta);
+      const phiDeg = phiDegFor(rIn);
 
-    // 可选：窗口尺寸变化时也更新
-    window.addEventListener('resize', updateGround);
+      const orbitStr = `${thetaDeg.toFixed(2)}deg ${phiDeg.toFixed(2)}deg ${rIn}in`;
+      mv.setAttribute('camera-orbit', orbitStr);
+      mv.setAttribute('min-camera-orbit', `auto ${phiDeg.toFixed(2)}deg ${rIn}in`);
+      mv.setAttribute('max-camera-orbit', `auto ${phiDeg.toFixed(2)}deg ${rIn}in`);
+
+      // UI 状态
+      buttons.forEach(b => b.classList.toggle('active', +b.dataset.r === rIn));
+      statusEl.textContent = `Z≈${TARGET_Z_IN}", R=${rIn}"`;
+    }
+
+    // 绑定按钮
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => setDistanceInches(+btn.dataset.r));
+    });
+
+    // 模型加载完成后，默认激活 150"
+    mv.addEventListener('load', () => setDistanceInches(150));
+
+    // 可选：窗口尺寸变化时维持锁定（不做任何缩放，让构图稳定）
+    window.addEventListener('resize', () => {
+      const active = buttons.find(b => b.classList.contains('active')) || buttons[0];
+      setDistanceInches(+active.dataset.r);
+    });
   </script>
 </body>
 </html>
