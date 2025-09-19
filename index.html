@@ -25,7 +25,7 @@
     src="./model003.glb"
     camera-controls
     field-of-view="20deg"
-    camera-orbit="0deg 90deg 150in"
+    camera-orbit="0deg 60deg 150in"
     camera-target="0m 0.889m 0m"
     style="background: transparent;">
   </model-viewer>
@@ -38,8 +38,8 @@
     </div>
     <div class="row">
       <label>φ (俯仰)</label>
-      <input type="range" id="phi" min="0" max="180" step="1" value="90">
-      <input type="number" id="phiNum" min="0" max="180" step="1" value="90">
+      <input type="range" id="phi" min="0" max="90" step="1" value="60">
+      <input type="number" id="phiNum" min="0" max="90" step="1" value="60">
     </div>
     <div class="row">
       <label>r (距离)</label>
@@ -64,26 +64,25 @@
       const t = document.getElementById('theta').value;
       const p = document.getElementById('phi').value;
       const r = document.getElementById('radius').value;
-      mv.setAttribute('camera-orbit', `${t}deg ${p}deg ${r}in`);
+      mv.cameraOrbit = `${t}deg ${p}deg ${r}in`;
     }
     function updateTarget() {
       const y = document.getElementById('targetY').value;
-      mv.setAttribute('camera-target', `0m ${inToM(y)}m 0m`);
+      mv.cameraTarget = `0m ${inToM(y)}m 0m`;
     }
 
-    // 双向绑定
-    function bind(idRange, idNum, onChange) {
-      const r = document.getElementById(idRange);
-      const n = document.getElementById(idNum);
-      r.addEventListener('input', () => { n.value = r.value; onChange(); });
-      n.addEventListener('input', () => { r.value = n.value; onChange(); });
+    function bind(rangeId, numId, cb) {
+      const range = document.getElementById(rangeId);
+      const num   = document.getElementById(numId);
+      range.addEventListener('input', () => { num.value = range.value; cb(); });
+      num.addEventListener('input', () => { range.value = num.value; cb(); });
     }
+
     bind('theta','thetaNum', updateOrbit);
     bind('phi','phiNum', updateOrbit);
     bind('radius','radiusNum', updateOrbit);
     bind('targetY','targetYNum', updateTarget);
 
-    // HDRI 开关
     document.getElementById('hdr').addEventListener('change', e => {
       if (e.target.checked) {
         mv.setAttribute('environment-image','./Background_sculpture_exhibition_4k.hdr');
