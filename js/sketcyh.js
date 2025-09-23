@@ -1,4 +1,4 @@
-// js/sketch.js — interactive “wind hairs” background for Banquette
+// Interactive “wind hairs” background for Banquette
 
 let hairs, D;
 const nHairs = 60;
@@ -100,14 +100,14 @@ function draw() {
   } else if (inCanvas) {
     p = createVector(mouseX, mouseY);
   } else {
-    // Fallback to autonomous motion when pointer leaves the canvas
+    // Autonomous motion when pointer leaves the canvas
     const t = millis() / 5000;
     const r = lerp(D / 6, D / 2, noise(t, 1));
     const a = lerp(-TAU, TAU, noise(t, 2));
     p = cntr.copy().add(createVector(0, -r).rotate(a));
   }
 
-  // Build wind vector from pointer → center (always active)
+  // Wind vector from pointer → center (always active)
   let q = createVector(-dx, -dy).add(p);           // pointer in pg coords
   let v = createVector(D / 2, D / 2).sub(q);       // toward pg center
   const speed = dist(mouseX, mouseY, pmouseX, pmouseY);
