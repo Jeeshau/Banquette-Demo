@@ -2,15 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Banquette — Interactive</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-  <link rel="stylesheet" href="./css/styles.css?v=1">
+  <link rel="stylesheet" href="./css/styles.css?v=4">
 </head>
 <body>
-  <!-- Your actual page content lives here; it sits above the canvas -->
+  <!-- Your UI sits above the canvas -->
   <div id="overlay">
-    <!-- Replace this with your own header/hero/nav -->
     <header class="site-header">
       <h1>Banquette</h1>
       <nav class="site-nav">
@@ -19,6 +18,7 @@
         <button id="toggleAnim" class="btn">Pause</button>
       </nav>
     </header>
+
     <section class="hero">
       <h2>Shape. Flow. Wind.</h2>
       <p>Move your mouse (or tap) to play with the flow.</p>
@@ -26,14 +26,12 @@
   </div>
 
   <noscript>
-    <div class="noscript">This page has a soft animated background. Please enable JavaScript to see it.</div>
+    <div class="noscript">This page has a soft animated background. Enable JavaScript to see it.</div>
   </noscript>
 
-  <!-- p5.js -->
+  <!-- Scripts (order matters: p5 → Spine → sketch) -->
   <script src="https://cdn.jsdelivr.net/npm/p5@1/lib/p5.min.js"></script>
-
-  <!-- Your code (order matters: Spine first, then sketch) -->
-  <script src="./js/Spine.js?v=1"></script>
-  <script src="./js/sketch.js?v=1"></script>
+  <script src="./js/Spine.js?v=4"></script>
+  <script src="./js/sketch.js?v=4"></script>
 </body>
 </html>
