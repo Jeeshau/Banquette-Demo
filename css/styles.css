@@ -1,4 +1,4 @@
-/* css/styles.css — Banquette homepage with interactive p5 background */
+/* Banquette homepage with interactive p5 background */
 
 :root{
   --fg: #ffffff;
@@ -18,7 +18,7 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* The p5 canvas sits behind everything and MUST receive pointer events */
+/* p5 canvas lives behind content and MUST receive pointer events */
 canvas{
   position: fixed;
   inset: 0;           /* top/right/bottom/left: 0 */
@@ -26,7 +26,7 @@ canvas{
   display: block;
 }
 
-/* Page content over the canvas */
+/* Overlayed site UI */
 #overlay{
   position: relative;
   z-index: 1;
@@ -39,14 +39,13 @@ canvas{
         Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   text-shadow: var(--shadow);
 
-  /* Let empty overlay areas pass pointer events through to the canvas */
+  /* Let empty overlay areas pass events to the canvas */
   pointer-events: none;
 }
 
 /* Re-enable interaction for actual controls/links inside the overlay */
 #overlay a,
 #overlay button,
-#overlay [data-allow-pointer],
 .site-nav a,
 .btn{
   pointer-events: auto;
@@ -59,7 +58,6 @@ canvas{
   justify-content: space-between;
   gap: 16px;
 }
-
 .site-header h1{
   margin: 0;
   font-weight: 800;
@@ -67,13 +65,12 @@ canvas{
   font-size: clamp(24px, 4vw, 44px);
 }
 
-/* Nav pills + generic button */
+/* Nav + button */
 .site-nav{
   display: flex;
   align-items: center;
   gap: 12px;
 }
-
 .site-nav a,
 .btn{
   color: var(--fg);
@@ -86,14 +83,12 @@ canvas{
   transition: transform .15s ease, background .2s ease, border-color .2s ease;
   font-weight: 600;
 }
-
 .site-nav a:hover,
 .btn:hover{
   transform: translateY(-1px);
   background: rgba(255,255,255,.12);
   border-color: rgba(255,255,255,.35);
 }
-
 .site-nav a:focus-visible,
 .btn:focus-visible{
   outline: 2px solid #fff;
@@ -108,13 +103,11 @@ canvas{
   padding: 10vh 24px 12vh;
   gap: 24px;
 }
-
 .hero h2{
   margin: 0;
   font-weight: 800;
   font-size: clamp(28px, 4.2vw, 48px);
 }
-
 .hero p{
   margin: 0;
   opacity: .9;
