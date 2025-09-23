@@ -1,4 +1,4 @@
-// js/Spine.js
+// js/Spine.js — minimal helper used by the sketch
 class Spine {
   constructor({ n, separation, bendMax }) {
     this.n = n;
@@ -6,9 +6,11 @@ class Spine {
     this.bendMax = bendMax;
     this.node = Array.from({ length: n }, () => createVector(0, 0));
   }
+
   setNode(i, v) {
     this.node[i].set(v.x, v.y);
-    // Mild bend constraint to keep “hairs” smooth
+
+    // Optional smoothing: cap bend angle between consecutive segments
     if (i > 1) {
       const a = p5.Vector.sub(this.node[i], this.node[i - 1]);
       const b = p5.Vector.sub(this.node[i - 1], this.node[i - 2]);
@@ -20,6 +22,7 @@ class Spine {
       }
     }
   }
+
   draw(g) {
     g.beginShape();
     for (let i = 0; i < this.n; i++) g.vertex(this.node[i].x, this.node[i].y);
