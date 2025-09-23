@@ -1,4 +1,4 @@
-// js/Spine.js — minimal helper used by the sketch
+// Minimal helper used by the sketch
 class Spine {
   constructor({ n, separation, bendMax }) {
     this.n = n;
