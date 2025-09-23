@@ -97,11 +97,17 @@ function draw() {
   let p, v, s;
 
   // Mouse or first touch
-  if (mouseIsPressed || touches.length > 0) {
-    const mx = touches.length ? touches[0].x : mouseX;
-    const my = touches.length ? touches[0].y : mouseY;
-    p = createVector(mx, my);
-  } else {
+ // treat hover OR press as interaction
+const inCanvas = mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height;
+const hovered = inCanvas && (pmouseX !== mouseX || pmouseY !== mouseY);
+
+if (mouseIsPressed || touches.length > 0 || hovered) {
+  const mx = touches.length ? touches[0].x : mouseX;
+  const my = touches.length ? touches[0].y : mouseY;
+  p = createVector(mx, my);
+} else {
+  // noise-driven auto motion...
+
     let t = millis() / 5000;
     let r = lerp(D / 6, D / 2, noise(t, 1));
     let a = lerp(-TAU, TAU, noise(t, 2));
